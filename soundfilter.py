@@ -35,6 +35,7 @@ try:
     import numpy as np # Make sure NumPy is loaded before it is used in the callback
     assert np  # avoid "imported but unused" message (W0611)
 
+    datafile = None
     device_info = sd.query_devices(args.input_device, 'input')
     samplerate = device_info['default_samplerate']
     block_size = int(samplerate * args.block_duration / 1000)
@@ -44,8 +45,6 @@ try:
         datafile = open('data.csv','ab')
         freq = np.fft.rfftfreq(block_size, d=1./samplerate)
         np.savetxt(datafile, freq[None,:], delimiter=',', fmt='%.4f')
-    else:
-        datafile = None
 
     def activation_function(data):
         global active_counter
