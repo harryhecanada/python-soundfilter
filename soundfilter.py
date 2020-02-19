@@ -5,13 +5,17 @@
 import argparse
 import logging
 
+def int_or_str(text):
+    """Helper function for argument parsing."""
+    try:
+        return int(text)
+    except ValueError:
+        return text
+
 parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument('-i', '--input-device', type=int_or_str,
-                    help='input device ID or substring')
-parser.add_argument('-o', '--output-device', type=int_or_str,
-                    help='output device ID or substring')
-parser.add_argument('-c', '--channels', type=int, default=2,
-                    help='number of channels')
+parser.add_argument('-i', '--input-device', type=int_or_str, help='input device ID or substring')
+parser.add_argument('-o', '--output-device', type=int_or_str, help='output device ID or substring')
+parser.add_argument('-c', '--channels', type=int, default=2, help='number of channels')
 parser.add_argument('-b', '--block-duration', type=float, metavar='DURATION', default=50, help='block size (default %(default)s milliseconds)')
 parser.add_argument('-l', '--latency', type=float, help='latency in seconds')
 parser.add_argument('--start', type=int, default = 0)
@@ -25,7 +29,6 @@ active_start_freq = int(args.start)
 active_end_freq = int(args.end)
 active_start_mean = float(args.active_level)
 active_count = 3
-
 
 try:
     import sounddevice as sd
