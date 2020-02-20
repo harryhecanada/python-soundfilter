@@ -21,7 +21,6 @@ parser.add_argument('-l', '--latency', type=float, help='latency in seconds')
 parser.add_argument('--start', type=int, default = 0)
 parser.add_argument('--end', type=int, default = 20)
 parser.add_argument('--active_level', type=float, default = 10)
-parser.add_argument('--log', type=int, default = 0)
 args = parser.parse_args()
 
 # Rename constants to be more verbose
@@ -41,11 +40,6 @@ try:
     block_size = int(samplerate * args.block_duration / 1000)
     active_counter = 0
 
-    if args.log:
-        datafile = open('data.csv','ab')
-        freq = np.fft.rfftfreq(block_size, d=1./samplerate)
-        np.savetxt(datafile, freq[None,:], delimiter=',', fmt='%.4f')
-
     def activation_function(data):
         global active_counter
         if np.mean(data[active_start_freq:active_end_freq]) > active_start_mean:
@@ -60,13 +54,10 @@ try:
     def callback(indata, outdata, frames, time, status):
         if status:
             print(status)
-        data = np.fft.rfft(indata[:, 0])
-        data = np.abs(data)
 
-        if datafile:
-            # TODO: figure out a more efficient way of doing this...
-            np.savetxt(datafile, data[None,:], delimiter=',', fmt='%.4f')
-            
+        data = np.fft.rfft(indata[:, 0])
+        data = np.abs(data)        
+
         if activation_function(data):
             outdata[:] = indata
         else:
@@ -84,6 +75,3 @@ except KeyboardInterrupt:
     parser.exit('\nInterrupted by user')
 except Exception as e:
     parser.exit(type(e).__name__ + ': ' + str(e))
-finally:
-    if datafile:
-        datafile.close()
