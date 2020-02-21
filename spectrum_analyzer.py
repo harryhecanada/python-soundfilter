@@ -8,6 +8,7 @@ import argparse
 import queue
 import sys
 import math
+import json
 
 
 def int_or_str(text):
@@ -17,10 +18,17 @@ def int_or_str(text):
     except ValueError:
         return text
 
+defaults = {}
+try:
+    with open("config.json") as config:
+        configs = json.load(config)
+    defaults.update(configs)
+except:
+    print("Could not load configuration from config.json, using defaults for command line parameters...")
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('-l', '--list-devices', action='store_true', help='show list of audio devices and exit')
-parser.add_argument('-d', '--device', type=int_or_str, help='input device (numeric ID or substring)')
+parser.add_argument('-d', '--device', type=int_or_str, default = defaults.get("input-device", None), help='input device (numeric ID or substring)')
 parser.add_argument('-b', '--block-duration', type=float, metavar='DURATION', default=50, help='block size (default %(default)s milliseconds)')
 parser.add_argument('-c', '--channel', type=int, default=0, help='channel used for spectrum analysis (default 0)')
 parser.add_argument('-i', '--interval', type=float, default=30, help='minimum time between plot updates (default: %(default)s ms)')
