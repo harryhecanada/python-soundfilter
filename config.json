@@ -1,0 +1,8 @@
+{
+    "input-device": 3,
+    "output-device": 7,
+    "block_duration": 50, 
+    "active-level": 10, 
+    "start": 0,
+    "end": 20
+}
