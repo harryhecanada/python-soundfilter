@@ -37,7 +37,7 @@ parser.add_argument('-s','--start', type=int, default = defaults.get("start", 0)
 parser.add_argument('-e','--end', type=int, default = defaults.get("end", 20), help = "activation filter ending frequncy band") 
 args = parser.parse_args()
 print("Arguments loaded:")
-print(vars(args))
+print(json.dumps(vars(args), indent = 4))
 
 # Rename constants to be more verbose
 active_start_freq = int(args.start)
@@ -52,6 +52,10 @@ try:
 
     datafile = None
     device_info = sd.query_devices(args.input_device, 'input')
+    print("Input device info:")
+    print(json.dumps(device_info, indent = 4))
+    print("Output device info:")
+    print(json.dumps(sd.query_devices(args.output_device, 'output'), indent = 4))
     samplerate = device_info['default_samplerate']
     block_size = int(samplerate * args.block_duration / 1000)
     active_counter = 0
