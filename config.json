@@ -1,6 +1,6 @@
 {
     "api": "MME",
-    "input-device": "Mic", 
+    "input-device": "microphone", 
     "output-device": "CABLE Input", 
     "block-duration": 50, 
     "active-level": 3, 

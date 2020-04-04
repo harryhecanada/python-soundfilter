@@ -9,7 +9,7 @@ import json
 # Load from config.json
 defaults = {
     "api": "MME",
-    "input-device": "Mic",
+    "input-device": "microphone",
     "output-device": "CABLE Input",
     "block-duration": 50,
     "active-level": 3,
@@ -34,7 +34,7 @@ def parse_arguments():
             return text
 
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('-i', '--input-device', type=int_or_str, default = defaults.get("input-device", 'Mic'), help='input device ID or substring')
+    parser.add_argument('-i', '--input-device', type=int_or_str, default = defaults.get("input-device", 'microphone'), help='input device ID or substring')
     parser.add_argument('-o', '--output-device', type=int_or_str, default = defaults.get("output-device", 'CABLE Input'), help='output device ID or substring')
     parser.add_argument('--api', type=str, default = defaults.get("api", 'MME'), help='preferred API to use for audio')
     parser.add_argument('-b', '--block-duration', type=float, metavar='DURATION', default = defaults.get("block-duration", 50), help='block size (default %(default)s milliseconds)')
@@ -61,46 +61,58 @@ try:
     import numpy as np # Make sure NumPy is loaded before it is used in the callback
     #from scipy.signal import resample_poly
 
-    def get_device(name = 'CABLE Input', kind = 'output', api = 'MME'):
+    def get_device(name = 'CABLE Input', kind = 'output', api = 'MME'):       
+        devices = sd.query_devices()
         matching_devices = []
-        devices = sd.query_devices(kind = kind)
-        for device in devices:
-            if name.lower() in device.get('name').lower():
-                matching_devices.append(device)
+        for device_id in range(len(devices)):
+            if name.lower() in devices[device_id].get('name').lower():
+                try:
+                    if kind == 'input':
+                        sd.check_input_settings(device_id)
+                    elif kind == 'output':
+                        sd.check_output_settings(device_id)
+                    else:
+                        print('Invalid kind')
+                        return None
+                    matching_devices.append((device_id, devices[device_id]))
+                except:
+                    pass
         
         if not matching_devices:
-            print("Unable to find device matching", name, 'of kind', kind)
+            print("Unable to find device matching name", name, 'of kind', kind)
             return None
 
         found = False
-        for device in matching_devices:
+        for device_id, device in matching_devices:
             if api in sd.query_hostapis(int(device.get('hostapi'))).get('name'):
                 found = True
                 break
         
         if not found:
             print("Unable to find device matching host api", api, 'using first available...')
-            return devices[0]
+            return matching_devices[0]
         else:
-            return device
+            return device_id, device
     
-    input_names = ['mic', 'web', 'cam', 'phone']
-    device_info = get_device(args.input_device, 'input', args.api)
-    if not device_info:
+    input_names = ['web', 'cam', 'phone']
+    input_id, input_device = get_device(args.input_device, 'input', args.api)
+    if not input_device:
         for name in input_names:
-            device_info = get_device(name, 'input', args.api)
-            if device_info:
+            input_device = get_device(name, 'input', args.api)
+            if input_device:
                 break
     
-    if not device_info:
+    if not input_device:
         print("Unable to find input device, exiting...")
         exit(1)
 
     print("Input device info:")
-    print(json.dumps(device_info, indent = 4))
+    print(json.dumps(input_device, indent = 4))
+
+    output_id, output_device = get_device(args.output_device, 'output', args.api)
     print("Output device info:")
-    print(json.dumps(get_device(args.output_device, 'output', args.api), indent = 4))
-    samplerate = device_info['default_samplerate']
+    print(json.dumps(output_device, indent = 4))
+    samplerate = input_device['default_samplerate']
     block_size = int(samplerate * args.block_duration / 1000)
     active_counter = 0
 
@@ -127,7 +139,7 @@ try:
         else:
             outdata[:] = 0
 
-    with sd.Stream(device=(args.input_device, args.output_device),
+    with sd.Stream(device=(input_id, output_id),
                    samplerate=samplerate, blocksize=block_size, callback=callback):
         print('#' * 80)
         print('press Return to quit')
@@ -136,5 +148,3 @@ try:
         
 except KeyboardInterrupt:
     parser.exit('\nInterrupted by user')
-except Exception as e:
-    parser.exit(type(e).__name__ + ': ' + str(e))
