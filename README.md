@@ -3,7 +3,7 @@ Quick and dirty spectrum analyzer and audio filter for Windows using the soundde
 ### Prerequsites
 Download and install https://www.vb-audio.com/Cable/ in order to create a virtual microphone to be used by VoIP applications to receive your filtered audio.
 ### Quick Start Guide
-1) pip install sounddevice
+1) pip install .
 2) python spectrum_analyzer.py -l 
 - This will list all of your sound devices by ID, note down the desired mic and virtual audio cable input
 2) python spectrum_analyzer.py 
@@ -20,3 +20,5 @@ Download and install https://www.vb-audio.com/Cable/ in order to create a virtua
 
 
 
+TODO: GUI interface
+TODO: Auto find vb audio device
