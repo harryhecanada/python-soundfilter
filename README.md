@@ -22,4 +22,4 @@ Download and install https://www.vb-audio.com/Cable/ in order to create a virtua
 
 TODO: GUI interface    
 TODO: Auto find vb audio device    
-TODO: use https://github.com/syams86/Virtual-Audio-Pipeline/tree/master/Virtual%20Audio%20Pipeline
+TODO: use https://github.com/j1and1/Virtual-Audio-Pipeline/tree/master/Virtual%20Audio%20Pipeline
