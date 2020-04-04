@@ -62,6 +62,9 @@ try:
     #from scipy.signal import resample_poly
 
     def get_device(name = 'CABLE Input', kind = 'output', api = 'MME'):       
+        if isinstance(name, int):
+            return name, sd.query_devices(name)
+            
         devices = sd.query_devices()
         matching_devices = []
         for device_id in range(len(devices)):
@@ -94,7 +97,7 @@ try:
         else:
             return device_id, device
     
-    input_names = ['web', 'cam', 'phone']
+    input_names = ['cam', 'web', 'phone']
     input_id, input_device = get_device(args.input_device, 'input', args.api)
     if not input_device:
         for name in input_names:
