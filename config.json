@@ -1,6 +1,10 @@
 {
-    "block_duration": 50, 
-    "active-level": 10, 
+    "api": "MME",
+    "input-device": "Mic", 
+    "output-device": "CABLE Input", 
+    "block-duration": 50, 
+    "active-level": 3, 
+    "active-count": 10, 
     "start": 0,
     "end": 20
 }
