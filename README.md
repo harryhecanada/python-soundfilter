@@ -20,5 +20,6 @@ Download and install https://www.vb-audio.com/Cable/ in order to create a virtua
 
 
 
-TODO: GUI interface
-TODO: Auto find vb audio device
+TODO: GUI interface    
+TODO: Auto find vb audio device    
+TODO: use https://people.csail.mit.edu/hubert/pyaudio/    
