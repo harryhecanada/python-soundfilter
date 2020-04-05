@@ -124,7 +124,7 @@ class FilterWindow(qw.QMainWindow):
         self.central_widget.setLayout(main_layout)
         self.setCentralWidget(self.central_widget)
 
-        self.setWindowTitle("Filter")
+        self.setWindowTitle("PySoundFilter")
         self.change_style('Windows')
 
     def change_style(self, styleName):

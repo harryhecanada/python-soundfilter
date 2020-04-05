@@ -8,5 +8,5 @@ setup(name='python-soundfilter',
       author='Harry He',
       url='https://github.com/harryhecanada/python-soundfilter',
       install_requires=['sounddevice', 'pyqt5', 'numpy', 'matplotlib'],
-      scripts=['soundfilter.py', 'spectrum_analyzer.py']
+      scripts=['pysoundfilter.py', 'soundfilter.py', 'spectrum_analyzer.py']
     )
