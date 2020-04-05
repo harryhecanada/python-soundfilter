@@ -2,6 +2,7 @@ from PyQt5.QtCore import QSettings
 
 
 class Settings(dict):
+    __ver__ = "0.0.1"
     __company__ = "python_soundfilter"
     __product__ = "python_soundfilter"
     __defaults = {
@@ -28,18 +29,9 @@ class Settings(dict):
             self.set_to_defaults()
             self.save()
 
-        results = {
-            "input-api": settings.value("input-api", 0),
-            "output-api": settings.value("output-api", 0),
-            "input-device": settings.value("input-device", "microphone"),
-            "output-device": settings.value("output-device", "CABLE Input"),
-            "block-duration": settings.value("block-duration", 50.0),
-            "active-level": settings.value("active-level", 3),
-            "active-count": settings.value("active-count", 10),
-            "start": settings.value("start", 0),
-            "end": settings.value("end", 20),
-        }
-        self.update(results)
+        self.clear()
+        for key, value in self.__defaults.items():
+            self.update({key:settings.value(key, value)})
 
         print("Settings loaded:", self)
         return self
@@ -47,7 +39,8 @@ class Settings(dict):
     def save(self, data:dict = {}, settings:QSettings=QSettings(__company__, __product__)):
         if not data:
             data = self
-        for key, item in data:
+        for key, item in data.items():
             settings.setValue(key, item)
+        settings.setValue('version', self.__ver__)
 
 settings = Settings()
