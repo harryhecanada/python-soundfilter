@@ -11,7 +11,7 @@ class Settings(dict):
         "input-device": "microphone", 
         "output-device": "CABLE Input", 
         "block-duration": 50, 
-        "active-level": 3, 
+        "active-level": 3.0, 
         "active-count": 10, 
         "start": 0,
         "end": 20

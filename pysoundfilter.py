@@ -27,7 +27,7 @@ class FilterWindow(qw.QMainWindow):
 
         config_layout.addWidget(qw.QLabel("Active Voice Level"), 0, 0)
         self.active_voice_level = qw.QDoubleSpinBox()
-        self.active_voice_level.setValue(settings['active-level'])
+        self.active_voice_level.setValue(float(settings['active-level']))
         self.active_voice_level.setMinimum(0.0)
         self.active_voice_level.valueChanged.connect(self.set_active_voice_level)
         config_layout.addWidget(self.active_voice_level, 1, 0)
