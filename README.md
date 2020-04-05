@@ -6,5 +6,3 @@ Download and install https://www.vb-audio.com/Cable/ in order to create a virtua
 1) pip install .
 2) python soundfilter.py
 3) Change target application's input device to CABLE Output
-
-TODO: GUI interface
