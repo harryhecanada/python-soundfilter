@@ -5,37 +5,18 @@
 import json
 import sounddevice as sd
 import numpy as np 
-# Load from config.json
-_defaults = {
-    "api": "MME",
-    "input-device": "microphone",
-    "output-device": "CABLE Input",
-    "block-duration": 50,
-    "active-level": 3,
-    "active-count": 10,
-    "start": 0,
-    "end": 20,
-}
 
-configs = dict(_defaults)
-def load_defaults(filepath = 'config.json'):
-    try:
-        with open(filepath) as config:
-            data = json.load(config)
-        configs.update(data)
-    except:
-        print("Could not load configuration from config.json, using defaults for command line parameters...")
 
 class SoundFilter(object):
-    def __init__(self, input_device='microphone', output_device='CABLE Input', active_level=3, active_count = 10, start_freq=0, end_freq=20, block_duration = 50, api = 'MME'):
-        self.__output_id, self.__output_device = self.get_device(output_device, 'output', api)
-        self.__input_id, self.__input_device = self.get_device(input_device, 'input', api)
+    def __init__(self, input_device='microphone', output_device='CABLE Input', active_level=3, active_count = 10, start_freq=0, end_freq=20, block_duration = 50):
+        self.__input_id, self.__input_device = self.get_device(input_device, 'input')
+        self.__output_id, self.__output_device = self.get_device(output_device, 'output')
 
         # If input device cannot be found, try other names
         input_names = ['cam', 'web', 'phone']
         if not self.__input_device:
             for name in input_names:
-                self.__input_id, self.__input_device = self.get_device(name, 'input', api)
+                self.__input_id, self.__input_device = self.get_device(name, 'input')
                 if input_device:
                     break
 
@@ -52,7 +33,6 @@ class SoundFilter(object):
         print(json.dumps(sd.query_devices(self.__output_id), indent = 4))
 
         self.active_counter = 0
-        self.api = api
         self.start_freq = start_freq
         self.end_freq = end_freq
         self.active_level = active_level
@@ -67,6 +47,7 @@ class SoundFilter(object):
     def _new_stream(self):
         if self.stream:
             self.stream.stop()
+            self.stream = None
         self.stream = sd.Stream(device=(self.__input_id, self.__output_id), samplerate=self.samplerate, blocksize=self.block_size, callback=self.callback)
 
     @property
@@ -82,13 +63,11 @@ class SoundFilter(object):
         self.samplerate = self.__input_device['default_samplerate']
         self.block_size = int(self.samplerate * block_duration / 1000)
         if self.stream:
-            self.stop()
             self.start()
     
     def set_output(self, output_device, api = 'MME'):
         self.__output_id, self.__output_device = self.get_device(output_device, 'output', api)
         if self.stream:
-            self.stop()
             self.start()
 
     def start(self):
@@ -165,6 +144,7 @@ class SoundFilter(object):
 
 if __name__ == "__main__":
     import argparse
+    from settings import settings
     def parse_arguments():
         def int_or_str(text):
             """Helper function for argument parsing."""
@@ -174,14 +154,13 @@ if __name__ == "__main__":
                 return text
 
         parser = argparse.ArgumentParser(description=__doc__)
-        parser.add_argument('-i', '--input-device', type=int_or_str, default = configs.get("input-device", 'microphone'), help='input device ID or substring')
-        parser.add_argument('-o', '--output-device', type=int_or_str, default = configs.get("output-device", 'CABLE Input'), help='output device ID or substring')
-        parser.add_argument('--api', type=str, default = configs.get("api", 'MME'), help='preferred API to use for audio')
-        parser.add_argument('-b', '--block-duration', type=float, metavar='DURATION', default = configs.get("block-duration", 50), help='block size (default %(default)s milliseconds)')
-        parser.add_argument('-a','--active-level', type=float, default = configs.get("active-level", 3), help = "audio level required to activate your microphone within the activation frequency band")
-        parser.add_argument('-c','--active-count', type=float, default = configs.get("active-count", 10), help = "number of blocks to continue recording after activation")
-        parser.add_argument('-s','--start', type=int, default = configs.get("start", 0), help = "activation filter starting frequency band")
-        parser.add_argument('-e','--end', type=int, default = configs.get("end", 20), help = "activation filter ending frequncy band")
+        parser.add_argument('-i', '--input-device', type=int_or_str, default = settings.get("input-device", 'microphone'), help='input device ID or substring')
+        parser.add_argument('-o', '--output-device', type=int_or_str, default = settings.get("output-device", 'CABLE Input'), help='output device ID or substring')
+        parser.add_argument('-b', '--block-duration', type=float, metavar='DURATION', default = settings.get("block-duration", 50), help='block size (default %(default)s milliseconds)')
+        parser.add_argument('-a','--active-level', type=float, default = settings.get("active-level", 3), help = "audio level required to activate your microphone within the activation frequency band")
+        parser.add_argument('-c','--active-count', type=float, default = settings.get("active-count", 10), help = "number of blocks to continue recording after activation")
+        parser.add_argument('-s','--start', type=int, default = settings.get("start", 0), help = "activation filter starting frequency band")
+        parser.add_argument('-e','--end', type=int, default = settings.get("end", 20), help = "activation filter ending frequncy band")
         args = parser.parse_args()
         print("Arguments loaded:")
         print(json.dumps(vars(args), indent = 4))
@@ -190,7 +169,7 @@ if __name__ == "__main__":
     parser = parse_arguments()
     args = parser.parse_args()
 
-    sf = SoundFilter(args.input_device, args.output_device, args.active_level, args.active_count, args.start, args.end, args.block_duration, args.api).start()
+    sf = SoundFilter(args.input_device, args.output_device, args.active_level, args.active_count, args.start, args.end, args.block_duration).start()
     print('#' * 80)
     print('press Return to quit')
     print('#' * 80)
