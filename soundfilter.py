@@ -26,83 +26,80 @@ def load_defaults(filepath = 'config.json'):
     except:
         print("Could not load configuration from config.json, using defaults for command line parameters...")
 
-def get_device(name = 'CABLE Input', kind = 'output', api = 'MME'):       
-    if isinstance(name, int):
-        return name, sd.query_devices(name)
-
-    devices = sd.query_devices()
-    matching_devices = []
-    for device_id in range(len(devices)):
-        if name.lower() in devices[device_id].get('name').lower():
-            try:
-                if kind == 'input':
-                    sd.check_input_settings(device_id)
-                elif kind == 'output':
-                    sd.check_output_settings(device_id)
-                else:
-                    print('Invalid kind')
-                    return None
-                matching_devices.append((device_id, devices[device_id]))
-            except:
-                pass
-    
-    if not matching_devices:
-        print("Unable to find device matching name", name, 'of kind', kind)
-        return None
-
-    found = False
-    for device_id, device in matching_devices:
-        if api in sd.query_hostapis(int(device.get('hostapi'))).get('name'):
-            found = True
-            break
-    
-    if not found:
-        print("Unable to find device matching host api", api, 'using first available...')
-        return matching_devices[0]
-    else:
-        return device_id, device
-
 class SoundFilter(object):
-    def __init__(self, input_device, output_device, active_level, active_count = 10, start_freq=0, end_freq=20, block_duration = 50, api = 'MME'):
-        self.output_id, self.output_device = get_device(output_device, 'output', api)
-        self.input_id, self.input_device = get_device(input_device, 'input', api)
+    def __init__(self, input_device='microphone', output_device='CABLE Input', active_level=3, active_count = 10, start_freq=0, end_freq=20, block_duration = 50, api = 'MME'):
+        self.__output_id, self.__output_device = self.get_device(output_device, 'output', api)
+        self.__input_id, self.__input_device = self.get_device(input_device, 'input', api)
 
         # If input device cannot be found, try other names
         input_names = ['cam', 'web', 'phone']
-        if not self.input_device:
+        if not self.__input_device:
             for name in input_names:
-                self.input_id, self.input_device = get_device(name, 'input', api)
+                self.__input_id, self.__input_device = self.get_device(name, 'input', api)
                 if input_device:
                     break
 
         if not input_device:
-            raise ValueError("Unable to find proper input device for sound filter to function.")
+            input_device = sd.query_devices(kind='input')
+        
+        if not input_device:
+            raise ValueError("Unable to find any input device for sound filter to function.")
 
         print("Input device info:")
-        print(json.dumps(sd.query_devices(self.input_id), indent = 4))
+        print(json.dumps(sd.query_devices(self.__input_id), indent = 4))
 
         print("Output device info:")
-        print(json.dumps(sd.query_devices(self.output_id), indent = 4))
+        print(json.dumps(sd.query_devices(self.__output_id), indent = 4))
 
-        self.samplerate = self.input_device['default_samplerate']
-        self.block_size = int(self.samplerate * block_duration / 1000)
         self.active_counter = 0
         self.api = api
         self.start_freq = start_freq
         self.end_freq = end_freq
         self.active_level = active_level
         self.active_count = active_count
-        self.stream = sd.Stream(device=(self.input_id, self.output_id), samplerate=self.samplerate, blocksize=self.block_size, callback=self.callback)
+        self.samplerate = self.__input_device['default_samplerate']
+        self.block_size = int(self.samplerate * block_duration / 1000)
+        self.stream = None
 
         import atexit
         atexit.register(self.stop)
 
+    def _new_stream(self):
+        if self.stream:
+            self.stream.stop()
+        self.stream = sd.Stream(device=(self.__input_id, self.__output_id), samplerate=self.samplerate, blocksize=self.block_size, callback=self.callback)
+
+    @property
+    def input(self):
+        return self.__input_device['name']
+
+    @property
+    def output(self):
+        return self.__output_device['name']
+
+    def set_input(self, input_device, block_duration = 50, api = 'MME'):
+        self.__input_id, self.__input_device = self.get_device(input_device, 'input', api)
+        self.samplerate = self.__input_device['default_samplerate']
+        self.block_size = int(self.samplerate * block_duration / 1000)
+        if self.stream:
+            self.stop()
+            self.start()
+    
+    def set_output(self, output_device, api = 'MME'):
+        self.__output_id, self.__output_device = self.get_device(output_device, 'output', api)
+        if self.stream:
+            self.stop()
+            self.start()
+
     def start(self):
+        self._new_stream()
         self.stream.start()
         return self
     
     def stop(self):
-        self.stream.stop()
+        if self.stream:
+            self.stream.stop()
+            self.stream = None
         return self
 
     def activation_function(self, data):
@@ -125,6 +122,46 @@ class SoundFilter(object):
             outdata[:] = indata
         else:
             outdata[:] = 0
+
+    @staticmethod
+    def get_device(name = 'CABLE Input', kind = 'output', api = 0):       
+        if isinstance(name, int):
+            return name, sd.query_devices(name)
+
+        devices = sd.query_devices()
+        matching_devices = []
+        for device_id in range(len(devices)):
+            if name.lower() in devices[device_id].get('name').lower():
+                try:
+                    if kind == 'input':
+                        sd.check_input_settings(device_id)
+                    elif kind == 'output':
+                        sd.check_output_settings(device_id)
+                    else:
+                        print('Invalid kind')
+                        return None
+                    matching_devices.append((device_id, devices[device_id]))
+                except:
+                    pass
+        
+        if not matching_devices:
+            print("Unable to find device matching name", name, 'of kind', kind)
+            return None
+
+        found = False
+
+        if isinstance(api, int):
+            api = sd.query_hostapis(api).get('name')
+        for device_id, device in matching_devices:
+            if api in sd.query_hostapis(int(device.get('hostapi'))).get('name'):
+                found = True
+                break
+        
+        if not found:
+            print("Unable to find device matching host api", api, 'using first available...')
+            return matching_devices[0]
+        else:
+            return device_id, device
 
 if __name__ == "__main__":
     import argparse
