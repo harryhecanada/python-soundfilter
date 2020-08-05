@@ -1,3 +1,6 @@
+from enum import Enum
+from sys import exit
+import pathlib
 import pyWinhook
 import sounddevice as sd
 import soundfile as sf
@@ -19,9 +22,54 @@ Help button
 About button
 Version Strings
 Minimize and Close buttons
-TODO: proper stop with ctrl + c
 '''
+
 debug = True
+output_devices = [16, 18]
+callbacks = []
+def play_concurrent(data, fs, devices):
+    for device in devices:
+        sd.play(data, fs, device=device)
+        callbacks.append(sd._last_callback)
+        sd._last_callback = None
+
+def stop_all(ignore_errors=True):
+    for callback in callbacks:
+        callback.stream.stop(ignore_errors)
+        callback.stream.close(ignore_errors)
+
+class SoundBoardMap(dict):
+    def preload(self):
+        for key, item in self.items():
+            path = pathlib.Path(item)
+            if path.suffix == "":
+                #Assume control message and not a file
+                if isinstance(key, int):
+                    print("Preloading ASCII", key, "with function", path.name, "from", __file__)
+                else:
+                    print("Preloading Key", key, "with function", path.name, "from", __file__)
+                self[key] = globals()[path.name]
+            else:
+                if isinstance(key, int):
+                    print("Preloading ASCII", key, "with", path.name, "from", path.parent)
+                else:
+                    print("Preloading Key", key, "with", path.name, "from", path.parent)
+                data, fs = sf.read(path.resolve(), dtype='float32')
+                self[key] = {
+                    "path":path,
+                    "data":data,
+                    "fs":fs
+                }
+
+sound_board_map = SoundBoardMap({
+    3:"exit",
+    "Numpad0":"stop_all",
+    "Numpad1":"JohnCena.wav",
+    "Numpad2":"Fail_Recorder_Mission_Impossible_Themesong_online-audio-converter.com.wav",
+    "Numpad3":"Mortal_Kombat_X_Fatality_SOUND_EFFECT_online-audio-converter.com.wav"
+})
+sound_board_map.preload()
+
 def OnMouseEvent(event):
     if debug:
         print('MessageName: %s' % event.MessageName)
@@ -59,20 +107,14 @@ def OnKeyboardEvent(event):
     if event.Ascii == 3:
         exit()
 
-    if event.Key == "Numpad0":
-        sd.stop()
+    if event.Key in sound_board_map or event.Ascii in sound_board_map:
+        item = sound_board_map[event.Key]
+        if callable(item):
+            item()
+        else:
+            stop_all()
+            play_concurrent(item["data"], item['fs'], output_devices)
 
-    if event.Key == "Numpad1":
-        data, fs = sf.read("JohnCena.wav", dtype='float32')
-        sd.play(data, fs, device=18)
-
-    if event.Key == "Numpad2":
-        data, fs = sf.read("Fail_Recorder_Mission_Impossible_Themesong_online-audio-converter.com.wav", dtype='float32')
-        sd.play(data, fs, device=18)
-    
-    if event.Key == "Numpad3":
-        data, fs = sf.read("Mortal_Kombat_X_Fatality_SOUND_EFFECT_online-audio-converter.com.wav", dtype='float32')
-        sd.play(data, fs, device=18)
     # return True to pass the event to other handlers
     # return False to stop the event from propagatingd
     return True
