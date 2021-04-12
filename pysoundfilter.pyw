@@ -1,6 +1,6 @@
 import sounddevice
 import PyQt5.QtWidgets as qw
-from soundfilter import SoundFilter
+from soundfilter import SileroSoundFilter
 from settings import settings
 
 
@@ -9,7 +9,7 @@ class FilterWindow(qw.QMainWindow):
         super(FilterWindow, self).__init__()
 
         # Start a filter object
-        self.filter = SoundFilter()
+        self.filter = SileroSoundFilter()
 
         self.originalPalette = qw.QApplication.palette()
         
@@ -23,33 +23,33 @@ class FilterWindow(qw.QMainWindow):
         top_layout.addWidget(self.save)
         top_layout.addWidget(self.load)
         top_layout.addWidget(self.default)
-        config_layout = qw.QGridLayout()
+        # config_layout = qw.QGridLayout()
 
-        config_layout.addWidget(qw.QLabel("Active Voice Level"), 0, 0)
-        self.active_voice_level = qw.QDoubleSpinBox()
-        self.active_voice_level.setMinimum(0.0)
-        self.active_voice_level.valueChanged.connect(self.set_active_voice_level)
-        config_layout.addWidget(self.active_voice_level, 1, 0)
+        # config_layout.addWidget(qw.QLabel("Active Voice Level"), 0, 0)
+        # self.active_voice_level = qw.QDoubleSpinBox()
+        # self.active_voice_level.setMinimum(0.0)
+        # self.active_voice_level.valueChanged.connect(self.set_active_voice_level)
+        # config_layout.addWidget(self.active_voice_level, 1, 0)
 
-        config_layout.addWidget(qw.QLabel("Active Count"), 0, 1)
-        self.active_count = qw.QSpinBox()
-        self.active_count.setMinimum(1)
-        self.active_count.valueChanged.connect(self.set_active_count)
-        config_layout.addWidget(self.active_count, 1, 1)
+        # config_layout.addWidget(qw.QLabel("Active Count"), 0, 1)
+        # self.active_count = qw.QSpinBox()
+        # self.active_count.setMinimum(1)
+        # self.active_count.valueChanged.connect(self.set_active_count)
+        # config_layout.addWidget(self.active_count, 1, 1)
 
-        config_layout.addWidget(qw.QLabel("Starting Voice Frequency"), 2, 0)
-        self.start_freq = qw.QSpinBox()
-        self.start_freq.setMinimum(0)
-        self.start_freq.setMaximum(20000)
-        self.start_freq.valueChanged.connect(self.set_start_freq)
-        config_layout.addWidget(self.start_freq, 3, 0)
+        # config_layout.addWidget(qw.QLabel("Starting Voice Frequency"), 2, 0)
+        # self.start_freq = qw.QSpinBox()
+        # self.start_freq.setMinimum(0)
+        # self.start_freq.setMaximum(20000)
+        # self.start_freq.valueChanged.connect(self.set_start_freq)
+        # config_layout.addWidget(self.start_freq, 3, 0)
 
-        config_layout.addWidget(qw.QLabel("Ending Voice Frequency"), 2, 1)
-        self.end_freq = qw.QSpinBox()
-        self.end_freq.setMinimum(0)
-        self.end_freq.setMaximum(20000)
-        self.end_freq.valueChanged.connect(self.set_end_freq)
-        config_layout.addWidget(self.end_freq, 3, 1)
+        # config_layout.addWidget(qw.QLabel("Ending Voice Frequency"), 2, 1)
+        # self.end_freq = qw.QSpinBox()
+        # self.end_freq.setMinimum(0)
+        # self.end_freq.setMaximum(20000)
+        # self.end_freq.valueChanged.connect(self.set_end_freq)
+        # config_layout.addWidget(self.end_freq, 3, 1)
 
         # Add input APIs
         input_layout = qw.QVBoxLayout()
@@ -107,7 +107,7 @@ class FilterWindow(qw.QMainWindow):
         # Add everything together
         main_layout = qw.QGridLayout()
         main_layout.addLayout(top_layout, 0, 0, 1, 3)
-        main_layout.addLayout(config_layout, 1, 0, 1, 3)
+        # main_layout.addLayout(config_layout, 1, 0, 1, 3)
         main_layout.addWidget(self.input_group_box, 2, 0)
         main_layout.addWidget(self.output_group_box, 2, 1)
         main_layout.addLayout(bottom_layout, 3, 0, 1, 3)
@@ -205,16 +205,17 @@ class FilterWindow(qw.QMainWindow):
     
     def update_settings(self):
         #Update GUI
-        self.active_voice_level.setValue(float(settings['active-level']))
-        self.active_count.setValue(settings['active-count'])
-        self.start_freq.setValue(settings['start'])
-        self.end_freq.setValue(settings['end'])
+        # self.active_voice_level.setValue(float(settings['active-level']))
+        # self.active_count.setValue(settings['active-count'])
+        # self.start_freq.setValue(settings['start'])
+        # self.end_freq.setValue(settings['end'])
 
         #Update filter parameters
-        self.filter.active_level = float(settings['active-level'])
-        self.filter.active_count = settings['active-count']
-        self.filter.start_freq = settings['start']
-        self.filter.end_freq = settings['end']
+        # self.filter.active_level = float(settings['active-level'])
+        # self.filter.active_count = settings['active-count']
+        # self.filter.start_freq = settings['start']
+        # self.filter.end_freq = settings['end']
+        return
 
     def default_settings(self):
         settings.set_to_defaults()

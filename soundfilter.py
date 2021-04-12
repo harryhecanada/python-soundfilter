@@ -5,18 +5,19 @@
 import json
 import sounddevice as sd
 import numpy as np 
-
+import torch
+model = torch.jit.load('model.jit')
 
 class SoundFilter(object):
-    def __init__(self, input_device='microphone', output_device='CABLE Input', active_level=3, active_count = 10, start_freq=0, end_freq=20, block_duration = 50):
-        self.__input_id, self.__input_device = self.get_device(input_device, 'input')
-        self.__output_id, self.__output_device = self.get_device(output_device, 'output')
+    def __init__(self, input_device='microphone', output_device='CABLE Input', active_level=3, active_count = 10, start_freq=0, end_freq=20, block_duration = 250):
+        self._input_id, self._input_device = self.get_device(input_device, 'input')
+        self._output_id, self._output_device = self.get_device(output_device, 'output')
 
         # If input device cannot be found, try other names
         input_names = ['cam', 'web', 'phone']
-        if not self.__input_device:
+        if not self._input_device:
             for name in input_names:
-                self.__input_id, self.__input_device = self.get_device(name, 'input')
+                self._input_id, self._input_device = self.get_device(name, 'input')
                 if input_device:
                     break
 
@@ -27,17 +28,17 @@ class SoundFilter(object):
             raise ValueError("Unable to find any input device for sound filter to function.")
 
         print("Input device info:")
-        print(json.dumps(sd.query_devices(self.__input_id), indent = 4))
+        print(json.dumps(sd.query_devices(self._input_id), indent = 4))
 
         print("Output device info:")
-        print(json.dumps(sd.query_devices(self.__output_id), indent = 4))
+        print(json.dumps(sd.query_devices(self._output_id), indent = 4))
 
         self.active_counter = 0
         self.start_freq = start_freq
         self.end_freq = end_freq
         self.active_level = active_level
         self.active_count = active_count
-        self.samplerate = self.__input_device['default_samplerate']
+        self.samplerate = self._input_device['default_samplerate']
         self.block_size = int(self.samplerate * block_duration / 1000)
         self.stream = None
 
@@ -48,25 +49,25 @@ class SoundFilter(object):
         if self.stream:
             self.stream.stop()
             self.stream = None
-        self.stream = sd.Stream(device=(self.__input_id, self.__output_id), samplerate=self.samplerate, blocksize=self.block_size, callback=self.callback)
+        self.stream = sd.Stream(device=(self._input_id, self._output_id), samplerate=self.samplerate, blocksize=self.block_size, callback=self.callback)
 
     @property
     def input(self):
-        return self.__input_device['name']
+        return self._input_device['name']
 
     @property
     def output(self):
-        return self.__output_device['name']
+        return self._output_device['name']
 
     def set_input(self, input_device, block_duration = 50, api = 'MME'):
-        self.__input_id, self.__input_device = self.get_device(input_device, 'input', api)
-        self.samplerate = self.__input_device['default_samplerate']
+        self._input_id, self._input_device = self.get_device(input_device, 'input', api)
+        self.samplerate = self._input_device['default_samplerate']
         self.block_size = int(self.samplerate * block_duration / 1000)
         if self.stream:
             self.start()
     
     def set_output(self, output_device, api = 'MME'):
-        self.__output_id, self.__output_device = self.get_device(output_device, 'output', api)
+        self._output_id, self._output_device = self.get_device(output_device, 'output', api)
         if self.stream:
             self.start()
 
@@ -142,6 +143,78 @@ class SoundFilter(object):
         else:
             return device_id, device
 
+class SileroSoundFilter(SoundFilter):
+    _samplerate = 16000
+    _block_length = 250
+    _active_count = 1
+    def __init__(self, input_device='microphone', output_device='CABLE Input'):
+        self._input_id, self._input_device = self.get_device(input_device, 'input')
+        self._output_id, self._output_device = self.get_device(output_device, 'output')
+
+        # If input device cannot be found, try other names
+        input_names = ['cam', 'web', 'phone']
+        if not self._input_device:
+            for name in input_names:
+                self._input_id, self._input_device = self.get_device(name, 'input')
+                if input_device:
+                    break
+
+        if not input_device:
+            input_device = sd.query_devices(kind='input')
+        
+        if not input_device:
+            raise ValueError("Unable to find any input device for sound filter to function.")
+
+        print("Input device info:")
+        print(json.dumps(sd.query_devices(self._input_id), indent = 4))
+
+        print("Output device info:")
+        print(json.dumps(sd.query_devices(self._output_id), indent = 4))
+
+        self.samplerate = self._samplerate
+        # Hard coded block duration of 250ms
+        self.block_size = int(self._samplerate * self._block_length / 1000)
+        # Will crash if block size is not 4000, model is not trained for it
+        assert(self.block_size == 4000)
+        self.stream = None
+        self.active_counter = 0
+        
+        import atexit
+        atexit.register(self.stop)
+
+    def set_input(self, input_device, block_duration = 250, api = 'MME'):
+        self._input_id, self._input_device = self.get_device(input_device, 'input', api)
+        self.samplerate = self._samplerate
+        self.block_size = int(self._samplerate * self._block_length / 1000)
+        assert(self.block_size == 4000)
+        if self.stream:
+            self.start()
+
+    @classmethod
+    def validate(cls, model, inputs: torch.Tensor):
+        with torch.no_grad():
+            outs = model(inputs)
+        return outs
+
+    def activation_function(self, data):
+        chunks = torch.Tensor(data[:,1])
+        out = self.validate(model, chunks)
+
+        if out[0][1] > 0.5:
+            self.active_counter = self._active_count
+            return True
+        elif self.active_counter > 0:
+            self.active_counter -= 1
+            return True
+        else:
+            return False
+
+    def callback(self, indata, outdata, frames, time, status):
+        if self.activation_function(indata):
+            outdata[:] = indata
+        else:
+            outdata[:] = 0
+
 if __name__ == "__main__":
     import argparse
     from settings import settings
@@ -169,7 +242,8 @@ if __name__ == "__main__":
     parser = parse_arguments()
     args = parser.parse_args()
 
-    sf = SoundFilter(args.input_device, args.output_device, args.active_level, args.active_count, args.start, args.end, args.block_duration).start()
+    #sf = SoundFilter(args.input_device, args.output_device, args.active_level, args.active_count, args.start, args.end, args.block_duration).start()
+    sf = SileroSoundFilter(args.input_device, args.output_device).start()
     print('#' * 80)
     print('press Return to quit')
     print('#' * 80)
