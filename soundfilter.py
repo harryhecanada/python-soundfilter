@@ -6,8 +6,8 @@ import json
 import sounddevice as sd
 import numpy as np 
 import torch
-model = torch.jit.load('model.jit')
-
+model = torch.jit.load('model_micro.jit')
+model.eval()
 class SoundFilter(object):
     def __init__(self, input_device='microphone', output_device='CABLE Input', active_level=3, active_count = 10, start_freq=0, end_freq=20, block_duration = 250):
         self._input_id, self._input_device = self.get_device(input_device, 'input')
@@ -59,7 +59,7 @@ class SoundFilter(object):
     def output(self):
         return self._output_device['name']
 
-    def set_input(self, input_device, block_duration = 50, api = 'MME'):
+    def set_input(self, input_device, api = 'MME', block_duration = 50):
         self._input_id, self._input_device = self.get_device(input_device, 'input', api)
         self.samplerate = self._input_device['default_samplerate']
         self.block_size = int(self.samplerate * block_duration / 1000)
@@ -178,7 +178,7 @@ class SileroSoundFilter(SoundFilter):
         assert(self.block_size == 4000)
         self.stream = None
         self.active_counter = 0
-        
+
         import atexit
         atexit.register(self.stop)
 
